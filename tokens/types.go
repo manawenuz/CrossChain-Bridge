@@ -57,7 +57,8 @@ type TokenConfig struct {
 	SwapFeeRate            *float64
 	MaximumSwapFee         *float64
 	MinimumSwapFee         *float64
-	PlusGasPricePercentage uint64 `json:",omitempty"`
+	PlusGasPricePercentage uint64   `json:",omitempty"`
+	AggregateMinValue      *float64 `json:",omitempty"`
 	DisableSwap            bool
 
 	// use private key address instead
@@ -72,6 +73,7 @@ type TokenConfig struct {
 	maxSwapFee       *big.Int
 	minSwapFee       *big.Int
 	bigValThreshhold *big.Int
+	aggregateMinVal  *big.Int
 }
 
 // IsErc20 return if token is erc20
@@ -172,6 +174,7 @@ type BuildTxArgs struct {
 	Memo        string     `json:"memo,omitempty"`
 	Input       *[]byte    `json:"input,omitempty"`
 	Extra       *AllExtras `json:"extra,omitempty"`
+	InputCode   string     `json:"inputCode,omitempty"`
 }
 
 // GetExtraArgs get extra args
@@ -198,9 +201,10 @@ type AllExtras struct {
 
 // EthExtraArgs struct
 type EthExtraArgs struct {
-	Gas      *uint64  `json:"gas,omitempty"`
-	GasPrice *big.Int `json:"gasPrice,omitempty"`
-	Nonce    *uint64  `json:"nonce,omitempty"`
+	Gas            *uint64  `json:"gas,omitempty"`
+	GasPrice       *big.Int `json:"gasPrice,omitempty"`
+	Nonce          *uint64  `json:"nonce,omitempty"`
+	AggregateValue *big.Int `json:"aggregateValue,omitempty"`
 }
 
 // BtcOutPoint struct
@@ -281,6 +285,9 @@ func (c *TokenConfig) CheckConfig(isSrc bool) error {
 	if c.BigValueThreshold == nil {
 		return errors.New("token must config 'BigValueThreshold'")
 	}
+	if c.AggregateMinValue == nil {
+		return errors.New("token must config 'AggregateMinValue'")
+	}
 	if c.DcrmAddress == "" {
 		return errors.New("token must config 'DcrmAddress'")
 	}
@@ -318,6 +325,12 @@ func (c *TokenConfig) CalcAndStoreValue() {
 	c.maxSwapFee = ToBits(*c.MaximumSwapFee, *c.Decimals)
 	c.minSwapFee = ToBits(*c.MinimumSwapFee, *c.Decimals)
 	c.bigValThreshhold = ToBits(*c.BigValueThreshold, *c.Decimals)
+	c.aggregateMinVal = ToBits(*c.AggregateMinValue, *c.Decimals)
+}
+
+// GetAggregateMinValue get aggregate min value
+func (c *TokenConfig) GetAggregateMinValue() *big.Int {
+	return c.aggregateMinVal
 }
 
 // GetDcrmAddressPrivateKey get private key
