@@ -11,6 +11,7 @@ import (
 	"github.com/anyswap/CrossChain-Bridge/tokens/btc"
 	"github.com/anyswap/CrossChain-Bridge/tokens/eth"
 	"github.com/anyswap/CrossChain-Bridge/tokens/fsn"
+	"github.com/anyswap/CrossChain-Bridge/tokens/ltc"
 )
 
 // NewCrossChainBridge new bridge according to chain name
@@ -19,6 +20,8 @@ func NewCrossChainBridge(id string, isSrc bool) tokens.CrossChainBridge {
 	switch {
 	case strings.HasPrefix(blockChainIden, "BITCOIN"):
 		return btc.NewCrossChainBridge(isSrc)
+	case strings.HasPrefix(blockChainIden, "LITECOIN"):
+		return ltc.NewCrossChainBridge(isSrc)
 	case strings.HasPrefix(blockChainIden, "ETHEREUM"):
 		return eth.NewCrossChainBridge(isSrc)
 	case strings.HasPrefix(blockChainIden, "FUSION"):
@@ -58,6 +61,7 @@ func InitCrossChainBridge(isServer bool) {
 	tokens.LoadTokenPairsConfig(true)
 
 	btc.Init(cfg.BtcExtra)
+	ltc.Init(cfg.BtcExtra)
 
 	dcrm.Init(cfg.Dcrm, isServer)
 

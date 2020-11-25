@@ -11,26 +11,26 @@ import (
 	"github.com/anyswap/CrossChain-Bridge/common"
 	"github.com/anyswap/CrossChain-Bridge/log"
 	"github.com/anyswap/CrossChain-Bridge/tokens"
-	"github.com/anyswap/CrossChain-Bridge/tokens/btc"
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcutil/base58"
+	"github.com/anyswap/CrossChain-Bridge/tokens/ltc"
+	"github.com/ltcsuite/ltcd/btcec"
+	"github.com/ltcsuite/ltcutil"
+	"github.com/ltcsuite/ltcutil/base58"
 	"github.com/urfave/cli/v2"
 )
 
 var (
 	// nolint:lll // allow long line of example
-	sendBtcCommand = &cli.Command{
-		Action:    sendBtc,
-		Name:      "sendbtc",
-		Usage:     "send btc",
+	sendLtcCommand = &cli.Command{
+		Action:    sendLtc,
+		Name:      "sendltc",
+		Usage:     "send ltc",
 		ArgsUsage: " ",
 		Description: `
-send btc command, sign tx with WIF or private key.
+send ltc command, sign tx with WIF or private key.
 
 Example:
 
-./swaptools sendbtc --gateway http://1.2.3.4:5555 --net testnet3 --wif ./wif.txt --from maiApsjjnceZ7Cx1UMj344JRU3R8A2Say6 --to mtc4xaZgJJZpN6BdoWk7pHFho1GTUnd5aP --value 10000 --to mfwanCuht2b4Lvb5XTds4Rvzy3jZ2ZWraL --value 20000 --memo "test send btc" --dryrun
+./swaptools sendltc --gateway http://1.2.3.4:5555 --net testnet3 --wif ./wif.txt --from maiApsjjnceZ7Cx1UMj344JRU3R8A2Say6 --to mtc4xaZgJJZpN6BdoWk7pHFho1GTUnd5aP --value 10000 --to mfwanCuht2b4Lvb5XTds4Rvzy3jZ2ZWraL --value 20000 --memo "test send ltc" --dryrun
 `,
 		Flags: []cli.Flag{
 			utils.GatewayFlag,
@@ -47,7 +47,7 @@ Example:
 	}
 )
 
-type btcTxSender struct {
+type ltcTxSender struct {
 	gateway       string
 	netID         string
 	wifFile       string
@@ -61,11 +61,11 @@ type btcTxSender struct {
 }
 
 var (
-	btcBridge *btc.Bridge
-	btcSender = &btcTxSender{}
+	ltcBridge *ltc.Bridge
+	ltcSender = &ltcTxSender{}
 )
 
-func (bts *btcTxSender) initArgs(ctx *cli.Context) {
+func (bts *ltcTxSender) initArgs(ctx *cli.Context) {
 	bts.gateway = ctx.String(utils.GatewayFlag.Name)
 	bts.netID = ctx.String(networkFlag.Name)
 	bts.wifFile = ctx.String(wifFileFlag.Name)
@@ -97,29 +97,29 @@ func (bts *btcTxSender) initArgs(ctx *cli.Context) {
 	}
 }
 
-func sendBtc(ctx *cli.Context) error {
+func sendLtc(ctx *cli.Context) error {
 	utils.SetLogger(ctx)
-	btcSender.initArgs(ctx)
+	ltcSender.initArgs(ctx)
 
-	btcSender.initBridge()
+	ltcSender.initBridge()
 
-	wifStr := btcSender.loadWIFForAddress()
+	wifStr := ltcSender.loadWIFForAddress()
 
-	rawTx, err := btcBridge.BuildTransaction(btcSender.sender, btcSender.receivers, btcSender.amounts, btcSender.memo, btcSender.relayFeePerKb)
+	rawTx, err := ltcBridge.BuildTransaction(ltcSender.sender, ltcSender.receivers, ltcSender.amounts, ltcSender.memo, ltcSender.relayFeePerKb)
 	if err != nil {
 		log.Fatal("BuildRawTransaction error", "err", err)
 	}
 
-	signedTx, txHash, err := btcBridge.SignTransactionWithWIF(rawTx, wifStr)
+	signedTx, txHash, err := ltcBridge.SignTransactionWithWIF(rawTx, wifStr)
 	if err != nil {
 		log.Fatal("SignTransaction failed", "err", err)
 	}
 	log.Info("SignTransaction success", "txHash", txHash)
 
-	fmt.Println(btc.AuthoredTxToString(signedTx, true))
+	fmt.Println(ltc.AuthoredTxToString(signedTx, true))
 
-	if !btcSender.dryRun {
-		_, err = btcBridge.SendTransaction(signedTx)
+	if !ltcSender.dryRun {
+		_, err = ltcBridge.SendTransaction(signedTx)
 		if err != nil {
 			log.Error("SendTransaction failed", "err", err)
 		}
@@ -129,18 +129,18 @@ func sendBtc(ctx *cli.Context) error {
 	return nil
 }
 
-func (bts *btcTxSender) initBridge() {
-	btcBridge = btc.NewCrossChainBridge(true)
-	btcBridge.ChainConfig = &tokens.ChainConfig{
-		BlockChain: "Bitcoin",
+func (bts *ltcTxSender) initBridge() {
+	ltcBridge = ltc.NewCrossChainBridge(true)
+	ltcBridge.ChainConfig = &tokens.ChainConfig{
+		BlockChain: "Litecoin",
 		NetID:      bts.netID,
 	}
-	btcBridge.GatewayConfig = &tokens.GatewayConfig{
+	ltcBridge.GatewayConfig = &tokens.GatewayConfig{
 		APIAddress: []string{bts.gateway},
 	}
 }
 
-func (bts *btcTxSender) loadWIFForAddress() string {
+func (bts *ltcTxSender) loadWIFForAddress() string {
 	var wifStr string
 	if bts.wifFile != "" {
 		wifdata, err := ioutil.ReadFile(bts.wifFile)
@@ -167,18 +167,18 @@ func (bts *btcTxSender) loadWIFForAddress() string {
 			}
 		}
 		pri, _ := btcec.PrivKeyFromBytes(btcec.S256(), pribs)
-		wif, err := btcutil.NewWIF(pri, btcBridge.GetChainParams(), true)
+		wif, err := ltcutil.NewWIF(pri, ltcBridge.GetChainParams(), true)
 		if err != nil {
 			log.Fatal("failed to parse private key")
 		}
 		wifStr = wif.String()
 	}
-	wif, err := btcutil.DecodeWIF(wifStr)
+	wif, err := ltcutil.DecodeWIF(wifStr)
 	if err != nil {
 		log.Fatal("failed to decode WIF to verify")
 	}
 	pkdata := wif.SerializePubKey()
-	pkaddr, _ := btcBridge.NewAddressPubKeyHash(pkdata)
+	pkaddr, _ := ltcBridge.NewAddressPubKeyHash(pkdata)
 	if pkaddr.EncodeAddress() != bts.sender {
 		log.Fatal("address mismatch", "decoded", pkaddr.EncodeAddress(), "from", bts.sender)
 	}
